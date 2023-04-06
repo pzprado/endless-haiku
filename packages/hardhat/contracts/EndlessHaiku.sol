@@ -7,8 +7,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "hardhat/console.sol";
 
 contract EndlessHaiku is ERC721, ERC721URIStorage {
-  uint256 private tokenIdCounter = 0;
+  uint256 public tokenIdCounter = 0;
   uint256 public constant PRICE_PER_TOKEN = 0.08 ether;
+
+  event NFTMinted(address indexed owner, uint256 indexed tokenId, string tokenURI);
 
   constructor() ERC721("Endless Haiku", "HAIKU") {}
 
@@ -17,6 +19,8 @@ contract EndlessHaiku is ERC721, ERC721URIStorage {
     uint256 tokenId = ++tokenIdCounter;
     _safeMint(msg.sender, tokenId);
     _setTokenURI(tokenId, word);
+
+    emit NFTMinted(msg.sender, tokenId, tokenURI(tokenId));
   }
 
   function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {

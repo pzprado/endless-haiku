@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import EndlessHaikuNFT from "../../public/assets/EndlessHaiku.json";
+import { getLocalProvider } from "../../utils/scaffold-eth";
+import { ethers } from "ethers";
 import Marquee from "react-fast-marquee";
+import { localhost } from "wagmi/chains";
 import {
   useAnimationConfig,
   useScaffoldContractRead,
@@ -9,129 +13,64 @@ import {
 
 const MARQUEE_PERIOD_IN_SEC = 5;
 
-export const ContractData = () => {
-  const [transitionEnabled, setTransitionEnabled] = useState(true);
-  const [isRightDirection, setIsRightDirection] = useState(false);
-  const [marqueeSpeed, setMarqueeSpeed] = useState(0);
+interface EndlessHaikuNFT {
+  word: string;
+  tokenId: number;
+}
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const greetingRef = useRef<HTMLDivElement>(null);
+export const ContractData = () => {
+  const [nfts, setNfts] = useState<EndlessHaikuNFT[]>([]);
 
   const { data: totalCounter } = useScaffoldContractRead({
-    contractName: "YourContract",
-    functionName: "totalCounter",
+    contractName: "EndlessHaiku",
+    functionName: "tokenIdCounter",
   });
-
-  const { data: currentGreeting, isLoading: isGreetingLoading } = useScaffoldContractRead({
-    contractName: "YourContract",
-    functionName: "greeting",
-  });
-
-  useScaffoldEventSubscriber({
-    contractName: "YourContract",
-    eventName: "GreetingChange",
-    listener: (greetingSetter, newGreeting, premium, value) => {
-      console.log(greetingSetter, newGreeting, premium, value);
-    },
-  });
-
-  const {
-    data: events,
-    isLoading: isLoadingEvents,
-    error: errorReadingEvents,
-  } = useScaffoldEventHistory({
-    contractName: "YourContract",
-    eventName: "GreetingChange",
-    fromBlock: Number(process.env.NEXT_PUBLIC_DEPLOY_BLOCK) || 0,
-    blockData: true,
-  });
-
-  console.log("events", isLoadingEvents, errorReadingEvents, events);
-
-  const { showAnimation } = useAnimationConfig(totalCounter);
-
-  const showTransition = transitionEnabled && !!currentGreeting && !isGreetingLoading;
 
   useEffect(() => {
-    if (transitionEnabled && containerRef.current && greetingRef.current) {
-      setMarqueeSpeed(
-        Math.max(greetingRef.current.clientWidth, containerRef.current.clientWidth) / MARQUEE_PERIOD_IN_SEC,
-      );
+    async function fetchData() {
+      try {
+        const provider = await getLocalProvider(localhost);
+        const contract = new ethers.Contract(
+          "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          EndlessHaikuNFT.abi,
+          provider,
+        );
+        const filter = contract.filters.Transfer(null, null);
+        const events = await contract.queryFilter(filter);
+        const nftsData = await Promise.all(
+          events.map(async event => {
+            const tokenId = event.args.tokenId.toString();
+            const tokenURI = await contract.tokenURI(tokenId);
+            return { tokenId, tokenURI };
+          }),
+        );
+
+        setNfts(nftsData);
+        console.log(nftsData);
+        return;
+      } catch (error) {
+        console.log("Error fetching ", error);
+      }
     }
-  }, [transitionEnabled, containerRef, greetingRef]);
+    fetchData();
+  }, []);
 
   return (
-    <div className="flex flex-col justify-center items-center bg-[url('/assets/gradient-bg.png')] bg-[length:100%_100%] py-10 px-5 sm:px-0 lg:py-auto max-w-[100vw] ">
-      <div
-        className={`flex flex-col max-w-md bg-base-200 bg-opacity-70 rounded-2xl shadow-lg px-5 py-4 w-full ${
-          showAnimation ? "animate-zoom" : ""
-        }`}
-      >
-        <div className="flex justify-between w-full">
-          <button
-            className="btn btn-circle btn-ghost relative bg-center bg-[url('/assets/switch-button-on.png')] bg-no-repeat"
-            onClick={() => {
-              setTransitionEnabled(!transitionEnabled);
-            }}
-          >
-            <div
-              className={`absolute inset-0 bg-center bg-no-repeat bg-[url('/assets/switch-button-off.png')] transition-opacity ${
-                transitionEnabled ? "opacity-0" : "opacity-100"
-              }`}
-            />
-          </button>
-          <div className="bg-secondary border border-primary rounded-xl flex">
-            <div className="p-2 py-1 border-r border-primary flex items-end">Total count</div>
-            <div className="text-4xl text-right min-w-[3rem] px-2 py-1 flex justify-end font-bai-jamjuree">
-              {totalCounter?.toString() || "0"}
-            </div>
+    <div className="flex flex-col bg-[url('/assets/gradient-bg.png')] bg-[length:100%_100%] py-10 px-5 sm:px-0 lg:py-auto max-w-[100vw] ">
+      <div className="flex justify-end items-center px-4">
+        <div className="bg-secondary border border-primary rounded-xl flex">
+          <div className="p-2 py-1 border-r border-primary flex items-end">word count</div>
+          <div className="text-4xl text-right min-w-[3rem] px-2 py-1 flex justify-end font-bai-jamjuree">
+            {totalCounter?.toString() || "0"}
           </div>
         </div>
-
-        <div className="mt-3 border border-primary bg-neutral rounded-3xl text-secondary  overflow-hidden text-[116px] whitespace-nowrap w-full uppercase tracking-tighter font-bai-jamjuree leading-tight">
-          <div className="relative overflow-x-hidden" ref={containerRef}>
-            {/* for speed calculating purposes */}
-            <div className="absolute -left-[9999rem]" ref={greetingRef}>
-              <div className="px-4">{currentGreeting}</div>
-            </div>
-            {new Array(3).fill("").map((_, i) => {
-              const isLineRightDirection = i % 2 ? isRightDirection : !isRightDirection;
-              return (
-                <Marquee
-                  key={i}
-                  direction={isLineRightDirection ? "right" : "left"}
-                  gradient={false}
-                  play={showTransition}
-                  speed={marqueeSpeed}
-                  className={i % 2 ? "-my-10" : ""}
-                >
-                  <div className="px-4">{currentGreeting || " "}</div>
-                </Marquee>
-              );
-            })}
+      </div>
+      <div className="flex mt-8 justify-center items-center">
+        {nfts.map(nft => (
+          <div key={nft.tokenId} className="flex mt-2">
+            <div className="mx-1">{nft.tokenURI}</div>
           </div>
-        </div>
-
-        <div className="mt-3 flex items-end justify-between">
-          <button
-            className={`btn btn-circle btn-ghost border border-primary hover:border-primary w-12 h-12 p-1 bg-neutral flex items-center ${
-              isRightDirection ? "justify-start" : "justify-end"
-            }`}
-            onClick={() => {
-              if (transitionEnabled) {
-                setIsRightDirection(!isRightDirection);
-              }
-            }}
-          >
-            <div className="border border-primary rounded-full bg-secondary w-2 h-2" />
-          </button>
-          <div className="w-44 p-0.5 flex items-center bg-neutral border border-primary rounded-full">
-            <div
-              className="h-1.5 border border-primary rounded-full bg-secondary animate-grow"
-              style={{ animationPlayState: showTransition ? "running" : "paused" }}
-            />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
