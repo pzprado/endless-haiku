@@ -1,0 +1,36 @@
+{
+  "name": "haiku",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/hardhat",
+      "packages/nextjs"
+    ]
+  },
+  "scripts": {
+    "account": "yarn workspace @haiku/hardhat account",
+    "chain": "yarn workspace @haiku/hardhat chain",
+    "fork": "yarn workspace @haiku/hardhat fork",
+    "deploy": "yarn workspace @haiku/hardhat deploy",
+    "verify": "yarn workspace @haiku/hardhat verify",
+    "compile": "yarn workspace @haiku/hardhat compile",
+    "generate": "yarn workspace @haiku/hardhat generate",
+    "hardhat:lint": "yarn workspace @haiku/hardhat lint",
+    "hardhat:lint-staged": "yarn workspace @haiku/hardhat lint-staged",
+    "hardhat:test": "yarn workspace @haiku/hardhat test",
+    "start": "yarn workspace @haiku/nextjs dev",
+    "next:lint": "yarn workspace @haiku/nextjs lint",
+    "next:format": "yarn workspace @haiku/nextjs format",
+    "next:check-types": "yarn workspace @haiku/nextjs check-types",
+    "postinstall": "husky install && node packages/nextjs/scripts/generateEmptyContractFile.mjs",
+    "precommit": "lint-staged",
+    "vercel": "yarn workspace @haiku/nextjs vercel",
+    "vercel:yolo": "yarn workspace @haiku/nextjs vercel:yolo"
+  },
+  "packageManager": "yarn@3.2.3",
+  "devDependencies": {
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3"
+  }
+}
