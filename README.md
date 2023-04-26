@@ -4,7 +4,7 @@ TBD
 
 ## Quickstart
 
-Follow the steps below:
+Follow the steps below (using hardhat only, foundry readme pending):
 
 1. Clone this repo & install dependencies
 
